@@ -103,3 +103,7 @@ Thumbs.db
 # Uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+node_modules/
+.env
+dist/
+build/
