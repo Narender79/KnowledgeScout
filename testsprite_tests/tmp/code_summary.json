@@ -1,0 +1,75 @@
+{
+  "tech_stack": [
+    "TypeScript",
+    "React",
+    "Node.js",
+    "Express",
+    "Tailwind CSS",
+    "Framer Motion",
+    "React Router",
+    "Lucide React",
+    "Zustand"
+  ],
+  "features": [
+    {
+      "name": "HomePage",
+      "description": "Main landing page with hero section, features showcase, testimonials, and call-to-action sections",
+      "files": ["frontend/src/pages/HomePage.tsx"]
+    },
+    {
+      "name": "Header",
+      "description": "Navigation header component with logo, menu items, and responsive mobile navigation",
+      "files": ["frontend/src/components/Header.tsx"]
+    },
+    {
+      "name": "Footer",
+      "description": "Footer component with links, social media, and company information",
+      "files": ["frontend/src/components/Footer.tsx"]
+    },
+    {
+      "name": "App Router",
+      "description": "Main application router with route definitions for all pages",
+      "files": ["frontend/src/App.tsx"]
+    },
+    {
+      "name": "Backend API Server",
+      "description": "Express.js API server with health check and placeholder endpoints",
+      "files": ["backend/src/index.ts"]
+    },
+    {
+      "name": "Health Check API",
+      "description": "API endpoint for server health monitoring",
+      "files": ["backend/src/index.ts"]
+    },
+    {
+      "name": "Auth API Routes",
+      "description": "Placeholder authentication API endpoints",
+      "files": ["backend/src/index.ts"]
+    },
+    {
+      "name": "Documents API Routes",
+      "description": "Placeholder document management API endpoints",
+      "files": ["backend/src/index.ts"]
+    },
+    {
+      "name": "Chat API Routes",
+      "description": "Placeholder chat/Q&A API endpoints",
+      "files": ["backend/src/index.ts"]
+    },
+    {
+      "name": "Responsive Design",
+      "description": "Mobile-first responsive design system with Tailwind CSS",
+      "files": ["frontend/src/index.css", "frontend/tailwind.config.js"]
+    },
+    {
+      "name": "Animation System",
+      "description": "Smooth animations and transitions using Framer Motion",
+      "files": ["frontend/src/pages/HomePage.tsx", "frontend/src/components/Header.tsx"]
+    },
+    {
+      "name": "Icon System",
+      "description": "Icon components using Lucide React library",
+      "files": ["frontend/src/pages/HomePage.tsx", "frontend/src/components/Header.tsx", "frontend/src/components/Footer.tsx"]
+    }
+  ]
+}

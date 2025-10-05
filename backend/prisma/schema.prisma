@@ -1,0 +1,116 @@
+// Knowledge Scout Database Schema
+// This schema defines the data models for the Knowledge Scout application
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model for authentication and user management
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  avatar    String?
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents     Document[]
+  chatSessions  ChatSession[]
+  teams         TeamMember[]
+  createdTeams  Team[]        @relation("TeamCreator")
+
+  @@map("users")
+}
+
+// Team model for collaboration
+model Team {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creatorId   String
+
+  // Relations
+  creator User         @relation("TeamCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  members TeamMember[]
+
+  @@map("teams")
+}
+
+// Team membership model
+model TeamMember {
+  id     String @id @default(cuid())
+  userId String
+  teamId String
+  role   String @default("member") // member, admin, owner
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teamId])
+  @@map("team_members")
+}
+
+// Document model for uploaded files
+model Document {
+  id           String   @id @default(cuid())
+  title        String
+  filename     String
+  originalName String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  status       String   @default("processing") // processing, completed, error
+  extractedText String?
+  summary      String?
+  metadata     Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  userId       String
+
+  // Relations
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  chatSessions ChatSession[]
+
+  @@map("documents")
+}
+
+// Chat session model for Q&A conversations
+model ChatSession {
+  id         String   @id @default(cuid())
+  title      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  userId     String
+  documentId String
+
+  // Relations
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  messages Message[]
+
+  @@map("chat_sessions")
+}
+
+// Message model for chat conversations
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  role      String   // user, assistant
+  timestamp DateTime @default(now())
+  sessionId String
+
+  // Relations
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@map("messages")
+}
