@@ -4,7 +4,7 @@ An intelligent document analysis and Q&A platform that transforms documents into
 
 ## 🚀 Features
 
-- **Document Upload & Analysis**: Support for PDF, DOC, DOCX, TXT files with AI-powered text extraction
+- **Document Upload & Analysis**: Support for PDF only files with AI-powered text extraction
 - **Intelligent Q&A**: Natural language questions with contextual answers and source citations
 - **Collaborative Workspace**: Team-based document sharing and real-time collaboration
 - **History Dashboard**: Document library with search, filter, and usage analytics
@@ -22,7 +22,7 @@ An intelligent document analysis and Q&A platform that transforms documents into
 - Node.js with Express
 - PostgreSQL database
 - Redis for caching
-- OpenAI GPT-4 for AI processing
+- Gemini 2.0 for AI processing
 
 ### DevOps
 - GitHub Actions for CI/CD
