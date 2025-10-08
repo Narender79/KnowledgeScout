@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-import pdfParse from 'pdf-parse';
+// import pdfParse from 'pdf-parse'; // Temporarily disabled due to Railway compatibility issues
 import databaseService from '../services/databaseService';
 import geminiService from '../services/geminiService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
@@ -50,9 +50,9 @@ const upload = multer({
 async function extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
   try {
     if (mimeType === 'application/pdf') {
-      const dataBuffer = fs.readFileSync(filePath);
-      const data = await (pdfParse as any)(dataBuffer);
-      return data.text;
+      // Temporarily return placeholder text for PDF files
+      // TODO: Implement proper PDF parsing with a Railway-compatible library
+      return 'PDF text extraction temporarily disabled. File uploaded successfully.';
     } else if (mimeType === 'text/plain') {
       return fs.readFileSync(filePath, 'utf-8');
     } else {
