@@ -52,7 +52,7 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
     if (mimeType === 'application/pdf') {
       try {
         const dataBuffer = fs.readFileSync(filePath);
-        const data = await pdfParse(dataBuffer);
+        const data = await (pdfParse as any)(dataBuffer);
         
         console.log(`PDF text extraction completed. Extracted ${data.text.length} characters from ${data.numpages} pages.`);
         
