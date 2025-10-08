@@ -46,7 +46,7 @@ const UploadPage: React.FC = () => {
     
     const files = Array.from(e.dataTransfer.files);
     handleFiles(files);
-  }, []);
+  }, [handleFiles]);
 
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
