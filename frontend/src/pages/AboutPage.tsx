@@ -5,12 +5,8 @@ import {
   Target, 
   Lightbulb, 
   Shield, 
-  Zap, 
-  Globe,
-  Award,
   Heart,
-  ArrowRight,
-  CheckCircle
+  ArrowRight
 } from 'lucide-react';
 
 const AboutPage: React.FC = () => {

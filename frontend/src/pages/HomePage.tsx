@@ -8,7 +8,6 @@ import {
   BarChart3, 
   ArrowRight, 
   Play,
-  CheckCircle,
   Star,
   Zap
 } from 'lucide-react';

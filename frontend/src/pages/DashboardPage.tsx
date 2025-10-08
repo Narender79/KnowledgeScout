@@ -5,7 +5,6 @@ import { useAuth } from '../contexts/AuthContext';
 import apiService from '../services/api';
 import { ChatSessionResponse } from '../types/api';
 import { 
-  Upload, 
   FileText, 
   MessageSquare, 
   BarChart3, 
@@ -15,12 +14,10 @@ import {
   Clock,
   Star,
   MoreVertical,
-  Plus,
   Grid,
   List,
   Download,
   Share,
-  Trash2,
   Eye
 } from 'lucide-react';
 

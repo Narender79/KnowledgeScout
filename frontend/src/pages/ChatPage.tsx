@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,7 +10,6 @@ import {
   User, 
   ArrowLeft, 
   MoreVertical, 
-  Trash2, 
   Download,
   Copy,
   CheckCircle,
@@ -35,7 +34,7 @@ const ChatPage: React.FC = () => {
     if (sessionId) {
       loadChatSession();
     }
-  }, [sessionId]);
+  }, [sessionId, loadChatSession]);
 
   useEffect(() => {
     scrollToBottom();
@@ -45,7 +44,7 @@ const ChatPage: React.FC = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const loadChatSession = async () => {
+  const loadChatSession = useCallback(async () => {
     try {
       setIsInitializing(true);
       if (!user || !sessionId) return;
@@ -107,7 +106,7 @@ const ChatPage: React.FC = () => {
     } finally {
       setIsInitializing(false);
     }
-  };
+  }, [user, sessionId]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading || !user || !sessionId) return;

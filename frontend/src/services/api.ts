@@ -1,6 +1,5 @@
 import {
   AuthResponse,
-  Document,
   DocumentResponse,
   DocumentsResponse,
   ChatSessionResponse,
@@ -8,8 +7,7 @@ import {
   MessagesResponse,
   SendMessageResponse,
   SummaryResponse,
-  QuestionsResponse,
-  User
+  QuestionsResponse
 } from '../types/api';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://collageproject-production-6a70.up.railway.app:8080/api';
@@ -135,5 +133,6 @@ class ApiService {
   }
 }
 
-export default new ApiService();
+const apiService = new ApiService();
+export default apiService;
 

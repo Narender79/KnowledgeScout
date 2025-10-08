@@ -29,7 +29,6 @@ const UploadPage: React.FC = () => {
   const navigate = useNavigate();
   const [isDragOver, setIsDragOver] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -56,7 +55,7 @@ const UploadPage: React.FC = () => {
     }
   };
 
-  const handleFiles = async (files: File[]) => {
+  const handleFiles = useCallback(async (files: File[]) => {
     if (!user) {
       alert('Please log in to upload documents');
       return;
@@ -71,7 +70,6 @@ const UploadPage: React.FC = () => {
       alert('Some files were rejected. Only PDF files under 50MB are allowed.');
     }
 
-    setIsUploading(true);
 
     for (const file of validFiles) {
       const fileId = Math.random().toString(36).substr(2, 9);
@@ -135,8 +133,7 @@ const UploadPage: React.FC = () => {
       }
     }
 
-    setIsUploading(false);
-  };
+  }, [user]);
 
   const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
