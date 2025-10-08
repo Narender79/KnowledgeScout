@@ -195,6 +195,66 @@ router.get('/:id', authenticateToken, async (req: AuthRequest, res) => {
   }
 });
 
+// Reprocess document with updated extraction logic
+router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const document = await databaseService.getDocumentById(req.params.id);
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Check if user owns the document
+    if (document.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // Update status to processing
+    await databaseService.updateDocument(document.id, {
+      status: 'processing'
+    });
+
+    // Reprocess document asynchronously
+    setImmediate(async () => {
+      try {
+        // Extract text from document with new logic
+        const extractedText = await extractTextFromFile(document.filePath, document.mimeType);
+        
+        // Generate summary using AI
+        let summary = '';
+        try {
+          summary = await geminiService.generateDocumentSummary(extractedText);
+        } catch (aiError) {
+          console.error('AI summary generation failed:', aiError);
+          summary = 'AI summary generation is currently unavailable.';
+        }
+
+        // Update document with new extracted text and summary
+        await databaseService.updateDocument(document.id, {
+          status: 'completed',
+          extractedText,
+          summary
+        });
+      } catch (error) {
+        console.error('Document reprocessing error:', error);
+        await databaseService.updateDocument(document.id, {
+          status: 'error'
+        });
+      }
+    });
+
+    res.json({ message: 'Document reprocessing started' });
+  } catch (error) {
+    console.error('Reprocess document error:', error);
+    res.status(500).json({ error: 'Failed to reprocess document' });
+  }
+});
+
 // Delete document
 router.delete('/:id', authenticateToken, async (req: AuthRequest, res) => {
   try {
