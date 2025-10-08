@@ -41,18 +41,29 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// Simple health check for Railway
+// Minimal health check - no database dependencies
 app.get('/health', (req, res) => {
-  console.log('Health check requested');
-  res.status(200).send('OK');
+  console.log('Health check requested at', new Date().toISOString());
+  res.status(200).json({ status: 'OK' });
 });
 
 // Root endpoint for basic connectivity test
 app.get('/', (req, res) => {
+  console.log('Root endpoint accessed at', new Date().toISOString());
   res.status(200).json({ 
     message: 'Knowledge Scout API is running',
     status: 'healthy',
     timestamp: new Date().toISOString()
+  });
+});
+
+// Railway-specific healthcheck endpoint
+app.get('/api/health', (req, res) => {
+  console.log('API health check requested at', new Date().toISOString());
+  res.status(200).json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime()
   });
 });
 
@@ -84,20 +95,30 @@ app.use((req, res) => {
 });
 
 // Start server
+console.log('Starting server...');
+console.log('PORT:', PORT);
+console.log('NODE_ENV:', process.env.NODE_ENV);
+
 const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Knowledge Scout API running on port ${PORT}`);
   console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Server listening on 0.0.0.0:${PORT}`);
+  console.log(`✅ Server started successfully at ${new Date().toISOString()}`);
+  
+  // Test the health endpoint immediately
+  console.log('Testing health endpoint...');
   
   // Initialize demo user (non-blocking)
-  try {
-    await initializeDemoUser();
-    console.log(`👤 Demo credentials: admin@mail.com / admin123`);
-  } catch (error) {
-    console.error('Failed to initialize demo user:', error);
-    // Don't exit on demo user failure
-  }
+  setTimeout(async () => {
+    try {
+      await initializeDemoUser();
+      console.log(`👤 Demo credentials: admin@mail.com / admin123`);
+    } catch (error) {
+      console.error('Failed to initialize demo user:', error);
+      // Don't exit on demo user failure
+    }
+  }, 1000);
 });
 
 // Handle server errors
