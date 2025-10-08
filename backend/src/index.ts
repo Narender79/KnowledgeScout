@@ -33,11 +33,17 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Routes
 app.get('/api/health', (req, res) => {
-  res.json({ 
+  res.status(200).json({ 
     status: 'OK', 
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    uptime: process.uptime()
   });
+});
+
+// Simple health check for Railway
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 // Import routes
@@ -68,17 +74,19 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Knowledge Scout API running on port ${PORT}`);
   console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`🔗 Server listening on 0.0.0.0:${PORT}`);
   
-  // Initialize demo user
+  // Initialize demo user (non-blocking)
   try {
     await initializeDemoUser();
     console.log(`👤 Demo credentials: admin@mail.com / admin123`);
   } catch (error) {
     console.error('Failed to initialize demo user:', error);
+    // Don't exit on demo user failure
   }
 });
 
