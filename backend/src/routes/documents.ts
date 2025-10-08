@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
-// import pdfParse from 'pdf-parse'; // Temporarily disabled due to Railway compatibility issues
+import * as pdfjsLib from 'pdfjs-dist';
 import databaseService from '../services/databaseService';
 import geminiService from '../services/geminiService';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
@@ -50,9 +50,52 @@ const upload = multer({
 async function extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
   try {
     if (mimeType === 'application/pdf') {
-      // Temporarily return placeholder text for PDF files
-      // TODO: Implement proper PDF parsing with a Railway-compatible library
-      return 'PDF text extraction temporarily disabled. File uploaded successfully.';
+      try {
+        const dataBuffer = fs.readFileSync(filePath);
+        
+        // Load the PDF document
+        const loadingTask = pdfjsLib.getDocument({
+          data: dataBuffer,
+          useSystemFonts: true,
+          useWorkerFetch: false,
+          disableFontFace: true,
+          disableRange: true,
+          disableStream: true,
+          verbosity: 0
+        });
+        
+        const pdf = await loadingTask.promise;
+        let fullText = '';
+        
+        // Extract text from each page
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+          const page = await pdf.getPage(pageNum);
+          const textContent = await page.getTextContent();
+          
+          // Combine all text items from the page
+          const pageText = textContent.items
+            .map((item: any) => item.str)
+            .join(' ');
+          
+          fullText += pageText + '\n';
+        }
+        
+        // Clean up the text
+        const cleanedText = fullText
+          .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+          .replace(/\n\s*\n/g, '\n')  // Remove empty lines
+          .trim();
+        
+        console.log(`PDF text extraction completed. Extracted ${cleanedText.length} characters from ${pdf.numPages} pages.`);
+        
+        return cleanedText || 'PDF file uploaded successfully. No text content found in the document.';
+        
+      } catch (error) {
+        console.error('PDF processing error:', error);
+        // Fallback to basic info if PDF parsing fails
+        const fileSize = (fs.statSync(filePath).size / 1024).toFixed(1);
+        return `PDF file uploaded successfully (${fileSize} KB). Text extraction failed - this may be due to image-based PDF or encryption.`;
+      }
     } else if (mimeType === 'text/plain') {
       return fs.readFileSync(filePath, 'utf-8');
     } else {
