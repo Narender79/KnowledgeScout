@@ -14,7 +14,7 @@ const PORT = parseInt(process.env.PORT || '5000', 10);
 // Middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'https://aquamarine-pika-90f6d3.netlify.app',
+  origin: process.env.FRONTEND_URL || 'https://knowscout.netlify.app',
   credentials: true
 }));
 app.use(morgan('combined'));
