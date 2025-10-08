@@ -43,7 +43,17 @@ app.get('/api/health', (req, res) => {
 
 // Simple health check for Railway
 app.get('/health', (req, res) => {
+  console.log('Health check requested');
   res.status(200).send('OK');
+});
+
+// Root endpoint for basic connectivity test
+app.get('/', (req, res) => {
+  res.status(200).json({ 
+    message: 'Knowledge Scout API is running',
+    status: 'healthy',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Import routes
@@ -74,9 +84,9 @@ app.use((req, res) => {
 });
 
 // Start server
-app.listen(PORT, '0.0.0.0', async () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Knowledge Scout API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/api/health`);
+  console.log(`📊 Health check: http://0.0.0.0:${PORT}/health`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🔗 Server listening on 0.0.0.0:${PORT}`);
   
@@ -88,6 +98,23 @@ app.listen(PORT, '0.0.0.0', async () => {
     console.error('Failed to initialize demo user:', error);
     // Don't exit on demo user failure
   }
+});
+
+// Handle server errors
+server.on('error', (error: any) => {
+  console.error('Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use`);
+    process.exit(1);
+  }
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
 });
 
 export default app;
