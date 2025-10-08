@@ -30,16 +30,6 @@ const ChatPage: React.FC = () => {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    if (sessionId) {
-      loadChatSession();
-    }
-  }, [sessionId, loadChatSession]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -107,6 +97,16 @@ const ChatPage: React.FC = () => {
       setIsInitializing(false);
     }
   }, [user, sessionId]);
+
+  useEffect(() => {
+    if (sessionId) {
+      loadChatSession();
+    }
+  }, [sessionId, loadChatSession]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!inputMessage.trim() || isLoading || !user || !sessionId) return;
