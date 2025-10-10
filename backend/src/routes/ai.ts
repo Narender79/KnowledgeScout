@@ -60,8 +60,24 @@ router.post('/chat/sessions/:sessionId/messages', authenticateToken, async (req:
       return res.status(404).json({ error: 'Chat session not found or access denied' });
     }
 
-    if (!session.document.extractedText) {
-      return res.status(400).json({ error: 'Document has not been processed yet' });
+    // Check document processing status and extracted text
+    if (!session.document.extractedText || session.document.extractedText.trim() === '') {
+      if (session.document.status === 'processing') {
+        return res.status(400).json({ 
+          error: 'Document is still being processed. Please wait a moment and try again.',
+          status: 'processing'
+        });
+      } else if (session.document.status === 'error') {
+        return res.status(400).json({ 
+          error: 'Document processing failed. Please try re-uploading the document.',
+          status: 'error'
+        });
+      } else {
+        return res.status(400).json({ 
+          error: 'Document text extraction failed. This may be due to an image-based PDF or encryption. Please try with a different document.',
+          status: 'no_text'
+        });
+      }
     }
 
     // Add user message to database

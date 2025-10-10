@@ -137,22 +137,35 @@ const ChatPage: React.FC = () => {
       } else {
         console.error('Invalid API response structure:', response);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending message:', error);
-      // Fallback to mock response if API fails
-      const aiResponse: Message = {
+      
+      // Handle specific error cases
+      let errorMessage = 'I apologize, but I encountered an error while processing your question. Please try again.';
+      
+      if (error.message) {
+        if (error.message.includes('Document is still being processed')) {
+          errorMessage = 'The document is still being processed. Please wait a moment and try again.';
+        } else if (error.message.includes('Document processing failed')) {
+          errorMessage = 'Document processing failed. Please try re-uploading the document.';
+        } else if (error.message.includes('Document text extraction failed')) {
+          errorMessage = 'Document text extraction failed. This may be due to an image-based PDF or encryption. Please try with a different document.';
+        } else if (error.message.includes('Document content not available')) {
+          errorMessage = 'Document content is not available. Please ensure the document was processed successfully.';
+        } else if (error.message.includes('AI Q&A is not available')) {
+          errorMessage = 'AI Q&A service is currently unavailable. Please check your API configuration.';
+        }
+      }
+      
+      const errorResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: `This is a sample AI response to your question: "${currentMessage}". The AI would analyze the document content and provide a contextual answer with source citations.`,
+        content: errorMessage,
         role: 'assistant',
         timestamp: new Date().toISOString(),
-        sources: [
-          'Sample source text from the document...',
-          'Another relevant quote from the document...'
-        ],
-        confidence: 0.87
+        confidence: 0.0
       };
 
-      setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
     }

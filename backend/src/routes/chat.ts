@@ -114,8 +114,31 @@ router.post('/sessions/:sessionId/messages', authenticateToken, async (req: Auth
 
     // Get document content
     const document = await databaseService.getDocumentById(session.documentId);
-    if (!document || !document.extractedText) {
-      return res.status(404).json({ error: 'Document content not available' });
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    // Check document processing status
+    if (document.status === 'processing') {
+      return res.status(400).json({ 
+        error: 'Document is still being processed. Please wait a moment and try again.',
+        status: 'processing'
+      });
+    }
+
+    if (document.status === 'error') {
+      return res.status(400).json({ 
+        error: 'Document processing failed. Please try re-uploading the document.',
+        status: 'error'
+      });
+    }
+
+    // Check if extracted text is available
+    if (!document.extractedText || document.extractedText.trim() === '') {
+      return res.status(400).json({ 
+        error: 'Document text extraction failed. This may be due to an image-based PDF or encryption. Please try with a different document.',
+        status: 'no_text'
+      });
     }
 
     // Add user message to database

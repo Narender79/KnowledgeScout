@@ -56,23 +56,40 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
         
         console.log(`PDF text extraction completed. Extracted ${data.text.length} characters from ${data.numpages} pages.`);
         
-        return data.text.trim() || 'PDF file uploaded successfully. No text content found in the document.';
+        // Clean and validate extracted text
+        const cleanedText = data.text.trim();
+        
+        if (cleanedText && cleanedText.length > 10) {
+          return cleanedText;
+        } else {
+          // If text is too short, it might be an image-based PDF
+          console.warn('PDF text extraction returned minimal content, likely an image-based PDF');
+          const fileSize = (fs.statSync(filePath).size / 1024).toFixed(1);
+          return `PDF file uploaded successfully (${fileSize} KB). This appears to be an image-based PDF or contains minimal text content. For best results, please upload a text-based PDF document.`;
+        }
         
       } catch (error) {
         console.error('PDF processing error:', error);
         // Fallback to basic info if PDF parsing fails
         const fileSize = (fs.statSync(filePath).size / 1024).toFixed(1);
-        return `PDF file uploaded successfully (${fileSize} KB). Text extraction failed - this may be due to image-based PDF or encryption.`;
+        return `PDF file uploaded successfully (${fileSize} KB). Text extraction failed - this may be due to image-based PDF, encryption, or corrupted file. Please try with a different PDF document.`;
       }
     } else if (mimeType === 'text/plain') {
-      return fs.readFileSync(filePath, 'utf-8');
+      const textContent = fs.readFileSync(filePath, 'utf-8');
+      return textContent.trim() || 'Text file uploaded successfully but appears to be empty.';
+    } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+      // For Word documents, return a placeholder for now
+      return 'Word document uploaded successfully. Text extraction for Word documents is not yet implemented. Please convert to PDF or plain text for full functionality.';
+    } else if (mimeType === 'application/rtf') {
+      // For RTF documents, return a placeholder for now
+      return 'RTF document uploaded successfully. Text extraction for RTF documents is not yet implemented. Please convert to PDF or plain text for full functionality.';
     } else {
       // For other file types, return a placeholder
-      return 'Text extraction not yet implemented for this file type.';
+      return 'File uploaded successfully. Text extraction is not yet implemented for this file type. Please use PDF or plain text files for full functionality.';
     }
   } catch (error) {
     console.error('Text extraction error:', error);
-    return 'Failed to extract text from document.';
+    return 'Failed to extract text from document. Please check if the file is not corrupted and try again.';
   }
 }
 
@@ -214,6 +231,11 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Check if file still exists
+    if (!fs.existsSync(document.filePath)) {
+      return res.status(400).json({ error: 'Document file not found. Please re-upload the document.' });
+    }
+
     // Update status to processing
     await databaseService.updateDocument(document.id, {
       status: 'processing'
@@ -222,8 +244,15 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
     // Reprocess document asynchronously
     setImmediate(async () => {
       try {
+        console.log(`Reprocessing document ${document.id}...`);
+        
         // Extract text from document with new logic
         const extractedText = await extractTextFromFile(document.filePath, document.mimeType);
+        
+        // Validate extracted text
+        if (!extractedText || extractedText.trim() === '') {
+          throw new Error('Text extraction returned empty content');
+        }
         
         // Generate summary using AI
         let summary = '';
@@ -240,6 +269,8 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
           extractedText,
           summary
         });
+        
+        console.log(`Document ${document.id} reprocessed successfully`);
       } catch (error) {
         console.error('Document reprocessing error:', error);
         await databaseService.updateDocument(document.id, {
@@ -248,7 +279,11 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
       }
     });
 
-    res.json({ message: 'Document reprocessing started' });
+    res.json({ 
+      message: 'Document reprocessing started',
+      documentId: document.id,
+      status: 'processing'
+    });
   } catch (error) {
     console.error('Reprocess document error:', error);
     res.status(500).json({ error: 'Failed to reprocess document' });
