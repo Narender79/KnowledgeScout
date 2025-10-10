@@ -13,6 +13,7 @@ import {
   Calendar,
   Clock,
   Star,
+  RefreshCw,
   MoreVertical,
   Grid,
   List,
@@ -182,6 +183,31 @@ const DashboardPage: React.FC = () => {
       alert('Failed to start Q&A session. Please try again.');
     } finally {
       setStartingSession(null);
+    }
+  };
+
+  const handleReprocessDocument = async (documentId: string) => {
+    try {
+      console.log('Reprocessing document ID:', documentId);
+      
+      if (!user) {
+        alert('Please log in to reprocess documents');
+        return;
+      }
+
+      const response = await apiService.reprocessDocument(documentId);
+      console.log('Reprocess response:', response);
+      
+      alert('Document reprocessing started. Please wait a moment and refresh the page to see the updated status.');
+      
+      // Refresh documents after a short delay
+      setTimeout(() => {
+        fetchDocuments();
+      }, 2000);
+      
+    } catch (error) {
+      console.error('Error reprocessing document:', error);
+      alert('Failed to reprocess document. Please try again.');
     }
   };
 
@@ -398,23 +424,33 @@ const DashboardPage: React.FC = () => {
 
                             <div className="flex items-center space-x-2">
                               {doc.status === 'processed' ? (
-                                <button 
-                                  onClick={() => handleStartQA(doc.id)}
-                                  disabled={startingSession === doc.id}
-                                  className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  {startingSession === doc.id ? (
-                                    <>
-                                      <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                                      Starting...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <MessageSquare className="w-4 h-4 mr-1" />
-                                      Start Q&A
-                                    </>
-                                  )}
-                                </button>
+                                <>
+                                  <button 
+                                    onClick={() => handleStartQA(doc.id)}
+                                    disabled={startingSession === doc.id}
+                                    className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                                  >
+                                    {startingSession === doc.id ? (
+                                      <>
+                                        <div className="w-4 h-4 mr-1 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                                        Starting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <MessageSquare className="w-4 h-4 mr-1" />
+                                        Start Q&A
+                                      </>
+                                    )}
+                                  </button>
+                                  <button 
+                                    onClick={() => handleReprocessDocument(doc.id)}
+                                    className="btn-secondary text-sm"
+                                    title="Reprocess document with updated extraction logic"
+                                  >
+                                    <RefreshCw className="w-4 h-4 mr-1" />
+                                    Reprocess
+                                  </button>
+                                </>
                               ) : doc.status === 'processing' ? (
                                 <button 
                                   disabled

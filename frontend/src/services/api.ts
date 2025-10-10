@@ -83,6 +83,12 @@ class ApiService {
     });
   }
 
+  async reprocessDocument(id: string): Promise<{ message: string; documentId: string; status: string }> {
+    return this.request<{ message: string; documentId: string; status: string }>(`/documents/${id}/reprocess`, {
+      method: 'POST',
+    });
+  }
+
   // Chat Sessions
   async createChatSession(documentId: string, userId: string, title?: string): Promise<ChatSessionResponse> {
     console.log('API: Creating chat session with documentId:', documentId, 'userId:', userId);
