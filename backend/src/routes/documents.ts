@@ -245,19 +245,28 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
     setImmediate(async () => {
       try {
         console.log(`Reprocessing document ${document.id}...`);
+        console.log(`File path: ${document.filePath}`);
+        console.log(`MIME type: ${document.mimeType}`);
         
         // Extract text from document with new logic
         const extractedText = await extractTextFromFile(document.filePath, document.mimeType);
+        console.log(`Extracted text length: ${extractedText ? extractedText.length : 0}`);
+        console.log(`Extracted text preview: ${extractedText ? extractedText.substring(0, 200) : 'No text'}`);
         
-        // Validate extracted text
+        // Validate extracted text - be more lenient with validation
         if (!extractedText || extractedText.trim() === '') {
-          throw new Error('Text extraction returned empty content');
+          console.error('Text extraction returned empty content');
+          await databaseService.updateDocument(document.id, {
+            status: 'error'
+          });
+          return;
         }
         
         // Generate summary using AI
         let summary = '';
         try {
           summary = await geminiService.generateDocumentSummary(extractedText);
+          console.log(`Summary generated: ${summary ? 'Yes' : 'No'}`);
         } catch (aiError) {
           console.error('AI summary generation failed:', aiError);
           summary = 'AI summary generation is currently unavailable.';
@@ -287,6 +296,48 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
   } catch (error) {
     console.error('Reprocess document error:', error);
     res.status(500).json({ error: 'Failed to reprocess document' });
+  }
+});
+
+// Test PDF extraction for debugging
+router.get('/:id/test-extraction', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) {
+      return res.status(401).json({ error: 'User not authenticated' });
+    }
+
+    const document = await databaseService.getDocumentById(req.params.id);
+    
+    if (!document) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+
+    if (document.userId !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!fs.existsSync(document.filePath)) {
+      return res.status(400).json({ error: 'Document file not found' });
+    }
+
+    // Test extraction
+    const extractedText = await extractTextFromFile(document.filePath, document.mimeType);
+    
+    res.json({
+      documentId: document.id,
+      filePath: document.filePath,
+      mimeType: document.mimeType,
+      fileExists: fs.existsSync(document.filePath),
+      extractedText: extractedText,
+      extractedTextLength: extractedText ? extractedText.length : 0,
+      currentStatus: document.status,
+      currentExtractedText: document.extractedText,
+      currentSummary: document.summary
+    });
+  } catch (error) {
+    console.error('Test extraction error:', error);
+    res.status(500).json({ error: 'Failed to test extraction', details: error instanceof Error ? error.message : 'Unknown error' });
   }
 });
 

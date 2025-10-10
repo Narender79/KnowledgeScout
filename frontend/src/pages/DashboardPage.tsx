@@ -211,6 +211,37 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const handleTestExtraction = async (documentId: string) => {
+    try {
+      console.log('Testing extraction for document ID:', documentId);
+      
+      if (!user) {
+        alert('Please log in to test extraction');
+        return;
+      }
+
+      const response = await apiService.testDocumentExtraction(documentId);
+      console.log('Test extraction response:', response);
+      
+      // Show detailed information in alert
+      const info = `
+File Path: ${response.filePath}
+File Exists: ${response.fileExists}
+MIME Type: ${response.mimeType}
+Extracted Text Length: ${response.extractedTextLength}
+Current Status: ${response.currentStatus}
+Current Extracted Text Preview: ${response.currentExtractedText ? response.currentExtractedText.substring(0, 200) : 'None'}
+New Extraction Preview: ${response.extractedText ? response.extractedText.substring(0, 200) : 'None'}
+      `;
+      
+      alert(`Extraction Test Results:\n${info}`);
+      
+    } catch (error) {
+      console.error('Error testing extraction:', error);
+      alert('Failed to test extraction. Please check console for details.');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-neutral-50 to-primary-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -449,6 +480,14 @@ const DashboardPage: React.FC = () => {
                                   >
                                     <RefreshCw className="w-4 h-4 mr-1" />
                                     Reprocess
+                                  </button>
+                                  <button 
+                                    onClick={() => handleTestExtraction(doc.id)}
+                                    className="btn-secondary text-sm"
+                                    title="Test extraction to debug issues"
+                                  >
+                                    <Search className="w-4 h-4 mr-1" />
+                                    Test
                                   </button>
                                 </>
                               ) : doc.status === 'processing' ? (

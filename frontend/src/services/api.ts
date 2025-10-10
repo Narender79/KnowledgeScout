@@ -89,6 +89,10 @@ class ApiService {
     });
   }
 
+  async testDocumentExtraction(id: string): Promise<any> {
+    return this.request<any>(`/documents/${id}/test-extraction`);
+  }
+
   // Chat Sessions
   async createChatSession(documentId: string, userId: string, title?: string): Promise<ChatSessionResponse> {
     console.log('API: Creating chat session with documentId:', documentId, 'userId:', userId);
