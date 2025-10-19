@@ -58,7 +58,7 @@ class ApiService {
       return result;
     } catch (error) {
       console.error('API request failed:', {
-        error: error.message,
+        error: error instanceof Error ? error.message : 'Unknown error',
         url,
         method: config.method || 'GET'
       });
