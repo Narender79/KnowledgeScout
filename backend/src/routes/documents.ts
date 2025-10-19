@@ -10,19 +10,22 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 const router = express.Router();
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../../uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
+// Use memory storage for production (Railway) to avoid ephemeral filesystem issues
+const storage = process.env.NODE_ENV === 'production' 
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination: (req, file, cb) => {
+        const uploadDir = path.join(__dirname, '../../uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+        cb(null, uploadDir);
+      },
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+      }
+    });
 
 const upload = multer({
   storage: storage,
@@ -47,11 +50,14 @@ const upload = multer({
 });
 
 // Helper function to extract text from different file types
-async function extractTextFromFile(filePath: string, mimeType: string): Promise<string> {
+async function extractTextFromFile(filePathOrBuffer: string | Buffer, mimeType: string): Promise<string> {
   try {
     if (mimeType === 'application/pdf') {
       try {
-        const dataBuffer = fs.readFileSync(filePath);
+        // Handle both file path (development) and buffer (production)
+        const dataBuffer = typeof filePathOrBuffer === 'string' 
+          ? fs.readFileSync(filePathOrBuffer)
+          : filePathOrBuffer;
         const data = await (pdfParse as any)(dataBuffer);
         
         console.log(`PDF text extraction completed. Extracted ${data.text.length} characters from ${data.numpages} pages.`);
@@ -64,18 +70,24 @@ async function extractTextFromFile(filePath: string, mimeType: string): Promise<
         } else {
           // If text is too short, it might be an image-based PDF
           console.warn('PDF text extraction returned minimal content, likely an image-based PDF');
-          const fileSize = (fs.statSync(filePath).size / 1024).toFixed(1);
+          const fileSize = typeof filePathOrBuffer === 'string' 
+            ? (fs.statSync(filePathOrBuffer).size / 1024).toFixed(1)
+            : (filePathOrBuffer.length / 1024).toFixed(1);
           return `PDF file uploaded successfully (${fileSize} KB). This appears to be an image-based PDF or contains minimal text content. For best results, please upload a text-based PDF document.`;
         }
         
       } catch (error) {
         console.error('PDF processing error:', error);
         // Fallback to basic info if PDF parsing fails
-        const fileSize = (fs.statSync(filePath).size / 1024).toFixed(1);
+        const fileSize = typeof filePathOrBuffer === 'string' 
+          ? (fs.statSync(filePathOrBuffer).size / 1024).toFixed(1)
+          : (filePathOrBuffer.length / 1024).toFixed(1);
         return `PDF file uploaded successfully (${fileSize} KB). Text extraction failed - this may be due to image-based PDF, encryption, or corrupted file. Please try with a different PDF document.`;
       }
     } else if (mimeType === 'text/plain') {
-      const textContent = fs.readFileSync(filePath, 'utf-8');
+      const textContent = typeof filePathOrBuffer === 'string' 
+        ? fs.readFileSync(filePathOrBuffer, 'utf-8')
+        : filePathOrBuffer.toString('utf-8');
       return textContent.trim() || 'Text file uploaded successfully but appears to be empty.';
     } else if (mimeType === 'application/msword' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
       // For Word documents, return a placeholder for now
@@ -115,9 +127,9 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req:
     // Create document in database
     const document = await databaseService.createDocument({
       title: req.file.originalname,
-      filename: req.file.filename,
+      filename: req.file.filename || `${Date.now()}-${req.file.originalname}`,
       originalName: req.file.originalname,
-      filePath: req.file.path,
+      filePath: req.file.path || 'memory-storage', // Use placeholder for memory storage
       fileSize: req.file.size,
       mimeType: req.file.mimetype,
       userId,
@@ -127,8 +139,9 @@ router.post('/upload', authenticateToken, upload.single('document'), async (req:
     // Process document asynchronously
     setImmediate(async () => {
       try {
-        // Extract text from document
-        const extractedText = await extractTextFromFile(req.file!.path, req.file!.mimetype);
+        // Extract text from document - handle both file path and buffer
+        const fileData = req.file!.buffer || req.file!.path;
+        const extractedText = await extractTextFromFile(fileData, req.file!.mimetype);
         
         // Generate summary using AI
         let summary = '';
@@ -231,8 +244,8 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    // Check if file still exists
-    if (!fs.existsSync(document.filePath)) {
+    // Check if file still exists (skip check for memory storage)
+    if (document.filePath !== 'memory-storage' && !fs.existsSync(document.filePath)) {
       return res.status(400).json({ error: 'Document file not found. Please re-upload the document.' });
     }
 
@@ -249,6 +262,15 @@ router.post('/:id/reprocess', authenticateToken, async (req: AuthRequest, res) =
         console.log(`MIME type: ${document.mimeType}`);
         
         // Extract text from document with new logic
+        // For memory storage, we can't reprocess as the file buffer is lost
+        if (document.filePath === 'memory-storage') {
+          await databaseService.updateDocument(document.id, {
+            status: 'error'
+          });
+          console.log('Cannot reprocess document stored in memory - file buffer is lost');
+          return;
+        }
+        
         const extractedText = await extractTextFromFile(document.filePath, document.mimeType);
         console.log(`Extracted text length: ${extractedText ? extractedText.length : 0}`);
         console.log(`Extracted text preview: ${extractedText ? extractedText.substring(0, 200) : 'No text'}`);
@@ -315,6 +337,14 @@ router.get('/:id/test-extraction', authenticateToken, async (req: AuthRequest, r
 
     if (document.userId !== userId) {
       return res.status(403).json({ error: 'Access denied' });
+    }
+
+    // For memory storage, we can't test extraction as the file buffer is lost
+    if (document.filePath === 'memory-storage') {
+      return res.status(400).json({ 
+        error: 'Cannot test extraction for documents stored in memory - file buffer is lost after processing',
+        storageType: 'memory'
+      });
     }
 
     if (!fs.existsSync(document.filePath)) {
