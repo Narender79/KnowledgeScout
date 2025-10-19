@@ -9,6 +9,16 @@ import { authenticateToken, AuthRequest } from '../middleware/auth';
 
 const router = express.Router();
 
+// Health check for documents route
+router.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    route: 'documents',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV
+  });
+});
+
 // Configure multer for file uploads
 // Use memory storage for production (Railway) to avoid ephemeral filesystem issues
 const storage = process.env.NODE_ENV === 'production' 
@@ -106,12 +116,30 @@ async function extractTextFromFile(filePathOrBuffer: string | Buffer, mimeType: 
 }
 
 // Upload document
-router.post('/upload', authenticateToken, upload.single('document'), async (req: AuthRequest, res) => {
+router.post('/upload', authenticateToken, (req, res, next) => {
+  upload.single('document')(req, res, (err) => {
+    if (err) {
+      console.error('Multer error:', err);
+      return res.status(400).json({ error: err.message });
+    }
+    next();
+  });
+}, async (req: AuthRequest, res) => {
   try {
+    console.log('=== UPLOAD REQUEST START ===');
     console.log('Upload request received');
-    console.log('req.file:', req.file);
+    console.log('req.file:', req.file ? {
+      fieldname: req.file.fieldname,
+      originalname: req.file.originalname,
+      filename: req.file.filename,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path,
+      buffer: req.file.buffer ? `Buffer(${req.file.buffer.length} bytes)` : 'No buffer'
+    } : 'No file');
     console.log('req.body:', req.body);
     console.log('Content-Type:', req.headers['content-type']);
+    console.log('User:', req.user ? { userId: req.user.userId } : 'No user');
     
     if (!req.file) {
       console.log('No file found in request');

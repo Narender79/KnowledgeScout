@@ -30,15 +30,38 @@ class ApiService {
     };
 
     try {
+      console.log('Making API request:', {
+        url,
+        method: config.method || 'GET',
+        hasBody: !!config.body,
+        bodyType: config.body instanceof FormData ? 'FormData' : typeof config.body,
+        headers: config.headers
+      });
+      
       const response = await fetch(url, config);
       
+      console.log('Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Response error body:', errorText);
+        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
       }
       
-      return await response.json();
+      const result = await response.json();
+      console.log('Response JSON:', result);
+      return result;
     } catch (error) {
-      console.error('API request failed:', error);
+      console.error('API request failed:', {
+        error: error.message,
+        url,
+        method: config.method || 'GET'
+      });
       throw error;
     }
   }
@@ -68,8 +91,17 @@ class ApiService {
   }
 
   async uploadDocument(file: File): Promise<DocumentResponse> {
+    console.log('Uploading file:', {
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      lastModified: file.lastModified
+    });
+    
     const formData = new FormData();
     formData.append('document', file);
+    
+    console.log('FormData created, sending request to:', `${API_BASE_URL}/documents/upload`);
 
     return this.request<DocumentResponse>('/documents/upload', {
       method: 'POST',
