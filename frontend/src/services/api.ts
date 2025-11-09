@@ -10,7 +10,7 @@ import {
   QuestionsResponse
 } from '../types/api';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://knowledgescout-production.up.railway.app/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://18.207.115.250:5000/api';
 
 class ApiService {
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
